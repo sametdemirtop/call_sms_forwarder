@@ -1,0 +1,76 @@
+{
+  "project_info": {
+    "project_number": "857751704265",
+    "project_id": "chat-cf257",
+    "storage_bucket": "chat-cf257.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:857751704265:android:0e057ab821ce208efd3318",
+        "android_client_info": {
+          "package_name": "com.callsmsforwarder.call_sms_forwarder"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "857751704265-4ns9471rag14rgtko5n1tcea7m4eqb9l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-dcKOmlulGxFa0wXIOw3_181KmRpdqic"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "857751704265-4ns9471rag14rgtko5n1tcea7m4eqb9l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:857751704265:android:a3c6abf00d6a42ecfd3318",
+        "android_client_info": {
+          "package_name": "com.example.chat_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "857751704265-lamu8tf39itkg7ici918fbl8ejk5sqhd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.chat_app",
+            "certificate_hash": "f9c7c5a4644da36da799e969793fe17c00240c68"
+          }
+        },
+        {
+          "client_id": "857751704265-4ns9471rag14rgtko5n1tcea7m4eqb9l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-dcKOmlulGxFa0wXIOw3_181KmRpdqic"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "857751704265-4ns9471rag14rgtko5n1tcea7m4eqb9l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
