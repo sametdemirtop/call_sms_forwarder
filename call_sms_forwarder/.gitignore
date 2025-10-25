@@ -43,3 +43,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase Functions
+functions/node_modules/
+functions/.npm/
+functions/package-lock.json
+functions/.eslintrc.js
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Sensitive files
+**/google-services.json
+**/firebase_options.dart
+

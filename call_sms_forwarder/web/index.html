@@ -24,18 +24,110 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   
   <script>
-    // Firebase yapılandırması - Firebase Console'dan alınacak
+    // Firebase yapılandırması
     const firebaseConfig = {
-      apiKey: "YOUR_WEB_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_WEB_APP_ID"
+      apiKey: "AIzaSyBgNNwWzvxdwH1APedg9mhpq1xX98eLzWA",
+      authDomain: "chat-cf257.firebaseapp.com",
+      projectId: "chat-cf257",
+      storageBucket: "chat-cf257.appspot.com",
+      messagingSenderId: "857751704265",
+      appId: "1:857751704265:web:99ca42ef6d0a11f3fd3318",
+      measurementId: "G-TFHMNBNYYC"
     };
 
     // Firebase'i başlat
     firebase.initializeApp(firebaseConfig);
+
+    // Push Notification Kurulum (Manuel - Butona tıklandığında çalışır)
+    window.setupPushNotifications = async function() {
+      try {
+        console.log('🔔 Push notification kurulumu başlıyor...');
+        
+        // iOS kontrolü
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+        
+        console.log('📱 Cihaz: iOS=' + isIOS + ', Standalone=' + isStandalone);
+        
+        // iOS ve standalone değilse uyar
+        if (isIOS && !isStandalone) {
+          alert('📱 iPhone\'da bildirim almak için:\n\n1. Safari\'de Paylaş butonuna bas\n2. "Ana Ekrana Ekle" seç\n3. Uygulamayı Ana Ekrandan aç\n4. Tekrar bu butona tıkla');
+          return false;
+        }
+        
+        // Notification API kontrolü
+        if (!('Notification' in window)) {
+          alert('⚠️ Bu tarayıcı bildirimleri desteklemiyor.');
+          return false;
+        }
+
+        // Reddedilmiş izin kontrolü
+        if (Notification.permission === 'denied') {
+          alert('❌ Bildirim izni reddedilmiş.\n\nTarayıcı ayarlarından bu site için bildirimlere izin verin.');
+          return false;
+        }
+
+        // Service Worker kaydı
+        if ('serviceWorker' in navigator) {
+          try {
+            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            console.log('✅ Service Worker registered:', registration);
+          } catch (swError) {
+            console.error('Service Worker hatası:', swError);
+          }
+        }
+
+        // İzin yoksa iste, varsa direkt devam et
+        let permission = Notification.permission;
+        if (permission === 'default') {
+          permission = await Notification.requestPermission();
+          console.log('📱 Notification permission:', permission);
+        } else {
+          console.log('📱 Notification permission already:', permission);
+        }
+
+        if (permission === 'granted') {
+          const messaging = firebase.messaging();
+          
+          // FCM token al
+          const token = await messaging.getToken({
+            vapidKey: 'BHV2_wKVNSDtZXdT4xcf1binYUj8i-1u9ePROVWr7yLYpu4Y6zIP_3ZludyprDMCCyz6YC3Nlg3lFq9bLABtahw'
+          });
+
+          if (token) {
+            console.log('🔑 FCM Token:', token);
+            
+            // Token'ı Firestore'a kaydet
+            const db = firebase.firestore();
+            await db.collection('fcm_tokens').doc(token).set({
+              token: token,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              platform: isIOS && isStandalone ? 'ios_pwa' : 'web',
+              userAgent: navigator.userAgent,
+              isIOS: isIOS,
+              isStandalone: isStandalone
+            });
+            
+            console.log('✅ FCM Token Firestore\'a kaydedildi!');
+            alert('🎉 Bildirimler aktif!\n\nToken başarıyla kaydedildi.');
+            return true;
+          } else {
+            alert('⚠️ Token alınamadı. Lütfen tekrar deneyin.');
+            return false;
+          }
+        } else {
+          alert('❌ Bildirim izni verilmedi.\n\nBildirimleri daha sonra aktifleştirebilirsiniz.');
+        }
+        return false;
+      } catch (error) {
+        console.error('❌ Push notification setup error:', error);
+        alert('⚠️ Bildirim kurulumu başarısız:\n' + error.message);
+        return false;
+      }
+    };
+
+    // Manuel çağrı için hazır (otomatik çalıştırma yok)
+    console.log('✅ Push notification fonksiyonu hazır. Manuel aktifleştirme için butona tıklayın.');
   </script>
 </body>
 </html>

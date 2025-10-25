@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/firebase_service.dart';
+
+// Conditional import for web
+import 'web_notification_stub.dart'
+    if (dart.library.js) 'web_notification_web.dart';
 
 class WebHomeScreen extends StatefulWidget {
   const WebHomeScreen({super.key});
@@ -51,6 +56,11 @@ class _WebHomeScreenState extends State<WebHomeScreen>
     setState(() {
       _isLoading = false;
     });
+  }
+
+  void _enableNotifications() {
+    // Platform-specific implementation
+    setupPushNotifications();
   }
 
   @override
@@ -126,6 +136,21 @@ class _WebHomeScreenState extends State<WebHomeScreen>
                 children: [_buildCallsList(), _buildSmsList()],
               ),
       ),
+      floatingActionButton: kIsWeb
+          ? FloatingActionButton.extended(
+              onPressed: _enableNotifications,
+              backgroundColor: const Color(0xFF6200EA),
+              icon: const Icon(Icons.notifications_active, color: Colors.white),
+              label: const Text(
+                'Bildirimleri Aç',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              elevation: 6,
+            )
+          : null,
     );
   }
 

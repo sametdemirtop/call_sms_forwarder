@@ -30,26 +30,16 @@ class _AndroidHomeScreenState extends State<AndroidHomeScreen> {
     _queueService = QueueService();
 
     // Delay initialization to prevent blocking the first frame
-    Future.microtask(() async {
-      await _initialize();
+    // Simply mark as loaded after a short delay, don't do any heavy work
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        // Load queue count AFTER UI is fully rendered
+        _updateQueueCount();
+      }
     });
-  }
-
-  Future<void> _initialize() async {
-    // Wait longer to ensure the first frame is fully rendered
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    try {
-      await _updateQueueCount();
-    } catch (e) {
-      print('Initialize error: $e');
-    }
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
   }
 
   Future<void> _updateQueueCount() async {
