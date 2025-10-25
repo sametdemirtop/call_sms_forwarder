@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:async';
 import '../services/firebase_service.dart';
 
 class WebHomeScreen extends StatefulWidget {
@@ -13,7 +13,7 @@ class _WebHomeScreenState extends State<WebHomeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final FirebaseService _firebaseService = FirebaseService();
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  Timer? _autoRefreshTimer;
 
   List<Map<String, dynamic>> _calls = [];
   List<Map<String, dynamic>> _sms = [];
@@ -23,22 +23,14 @@ class _WebHomeScreenState extends State<WebHomeScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _setupNotifications();
     _loadData();
+    _startAutoRefresh();
   }
 
-  Future<void> _setupNotifications() async {
-    // Web push notification izni iste
-    await _messaging.requestPermission(alert: true, badge: true, sound: true);
-
-    // Token al
-    final token = await _firebaseService.getToken();
-    print('FCM Token: $token');
-
-    // Foreground bildirimleri dinle
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Bildirim alındı: ${message.notification?.title}');
-      _loadData(); // Yeni veri geldiğinde yenile
+  void _startAutoRefresh() {
+    // Her 10 saniyede bir otomatik yenile
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      _loadData();
     });
   }
 
@@ -65,13 +57,36 @@ class _WebHomeScreenState extends State<WebHomeScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Call SMS Forwarder'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Row(
+          children: [
+            const Icon(Icons.call_end, color: Colors.white),
+            const SizedBox(width: 8),
+            const Text(
+              'Call & SMS Dashboard',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF6200EA),
+        elevation: 4,
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadData,
+            tooltip: 'Yenile',
+          ),
+          const SizedBox(width: 8),
         ],
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
           tabs: [
             Tab(
               icon: const Icon(Icons.phone),
@@ -84,23 +99,56 @@ class _WebHomeScreenState extends State<WebHomeScreen>
           ],
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [_buildCallsList(), _buildSmsList()],
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [const Color(0xFF6200EA).withOpacity(0.05), Colors.white],
+          ),
+        ),
+        child: _isLoading
+            ? const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Veriler yükleniyor...',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              )
+            : TabBarView(
+                controller: _tabController,
+                children: [_buildCallsList(), _buildSmsList()],
+              ),
+      ),
     );
   }
 
   Widget _buildCallsList() {
     if (_calls.isEmpty) {
-      return const Center(child: Text('Henüz arama kaydı yok'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.phone_disabled, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'Henüz arama kaydı yok',
+              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
     }
 
     return ListView.builder(
       itemCount: _calls.length,
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(16),
       itemBuilder: (context, index) {
         final call = _calls[index];
         final timestamp = call['timestamp'] != null
@@ -108,14 +156,53 @@ class _WebHomeScreenState extends State<WebHomeScreen>
             : DateTime.now();
 
         return Card(
-          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: ListTile(
-            leading: const CircleAvatar(child: Icon(Icons.phone_in_talk)),
-            title: Text(call['caller'] ?? 'Bilinmeyen'),
-            subtitle: Text(call['callType'] ?? 'Arama'),
-            trailing: Text(
-              '${timestamp.day}/${timestamp.month} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}',
-              style: Theme.of(context).textTheme.bodySmall,
+            contentPadding: const EdgeInsets.all(16),
+            leading: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6200EA).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.phone_in_talk,
+                color: Color(0xFF6200EA),
+                size: 28,
+              ),
+            ),
+            title: Text(
+              call['caller'] ?? 'Bilinmeyen',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                call['callType'] ?? 'Arama',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${timestamp.day}/${timestamp.month}/${timestamp.year}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -125,12 +212,24 @@ class _WebHomeScreenState extends State<WebHomeScreen>
 
   Widget _buildSmsList() {
     if (_sms.isEmpty) {
-      return const Center(child: Text('Henüz SMS kaydı yok'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.sms_failed, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'Henüz SMS kaydı yok',
+              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
     }
 
     return ListView.builder(
       itemCount: _sms.length,
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(16),
       itemBuilder: (context, index) {
         final sms = _sms[index];
         final timestamp = sms['timestamp'] != null
@@ -138,18 +237,68 @@ class _WebHomeScreenState extends State<WebHomeScreen>
             : DateTime.now();
 
         return Card(
-          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-          child: ListTile(
-            leading: const CircleAvatar(child: Icon(Icons.sms)),
-            title: Text(sms['sender'] ?? 'Bilinmeyen'),
-            subtitle: Text(
-              sms['message'] ?? '',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: Text(
-              '${timestamp.day}/${timestamp.month} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}',
-              style: Theme.of(context).textTheme.bodySmall,
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF03A9F4).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.sms,
+                        color: Color(0xFF03A9F4),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            sms['sender'] ?? 'Bilinmeyen',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${timestamp.day}/${timestamp.month}/${timestamp.year} - ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    sms['message'] ?? '',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -160,6 +309,7 @@ class _WebHomeScreenState extends State<WebHomeScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _autoRefreshTimer?.cancel();
     super.dispose();
   }
 }

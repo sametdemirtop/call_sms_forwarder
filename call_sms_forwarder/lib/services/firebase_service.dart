@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class FirebaseService {
@@ -9,18 +8,6 @@ class FirebaseService {
   FirebaseService._internal();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-
-  // Firebase token al
-  Future<String?> getToken() async {
-    try {
-      final token = await _messaging.getToken();
-      return token;
-    } catch (e) {
-      print('Token alma hatası: $e');
-      return null;
-    }
-  }
 
   // Bildirim gönder
   Future<void> sendNotification(
